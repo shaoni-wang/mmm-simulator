@@ -1,5 +1,5 @@
 # streamlit_app/app.py
-# Interactive Marketing Simulator Dashboard
+# Interactive Marketing Simulator Dashboard - Fixed Version
 
 import streamlit as st
 import pandas as pd
@@ -428,67 +428,187 @@ with tab2:
         st.info("👈 Run a simulation to see market trends")
 
 # ============================================================
-# TAB 3: MARKETING EFFICIENCY
+# TAB 3: MARKETING EFFICIENCY - FIXED VERSION
 # ============================================================
 with tab3:
     if st.session_state.results:
         result = st.session_state.results
         
+        st.subheader("📊 ROI Analysis")
+        
+        # --- Calculate ROI ---
+        channel_roi = {}
+        roi_raw = {}
+        
+        for channel in channels:
+            spend = result['budget'].get(channel, 0)
+            effect = st.session_state.simulator.mmm.results['channel_contributions'].get(channel, {})
+            contribution = effect.get('mean', 0)
+            
+            # Raw ROI
+            raw_roi = contribution / spend if spend > 0 else 0
+            
+            # Scaled ROI for visualization (×100,000)
+            scaled_roi = raw_roi * 100000
+            
+            channel_name = channel.replace('_spend', '').capitalize()
+            channel_roi[channel_name] = scaled_roi
+            roi_raw[channel_name] = raw_roi
+        
+        roi_df = pd.DataFrame({
+            'Channel': list(channel_roi.keys()),
+            'ROI (×100,000)': list(channel_roi.values()),
+            'Raw ROI': list(roi_raw.values())
+        })
+        
+        # --- Display ROI Table ---
+        st.dataframe(
+            roi_df.style.format({
+                'ROI (×100,000)': '{:.2f}',
+                'Raw ROI': '{:.6f}'
+            }),
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        # --- ROI Bar Chart (Fixed) ---
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("💰 Channel ROI")
+            fig = px.bar(
+                roi_df,
+                x='Channel',
+                y='ROI (×100,000)',
+                title='Channel ROI (Scaled for Visualization)',
+                color='Channel',
+                text_auto='.2f'
+            )
+            fig.update_traces(
+                textposition='outside',
+                marker=dict(line=dict(width=2, color='DarkSlateGray'))
+            )
+            fig.update_layout(
+                yaxis_title="ROI (×100,000)",
+                showlegend=False,
+                height=400,
+                yaxis=dict(gridcolor='lightgray')
+            )
+            fig.add_hline(y=0, line_dash="dash", line_color="red", line_width=2)
+            st.plotly_chart(fig, use_container_width=True)
             
-            # Calculate channel ROI
-            channel_roi = {}
-            for channel in channels:
-                spend = result['budget'].get(channel, 0)
-                effect = st.session_state.simulator.mmm.results['channel_contributions'].get(channel, {})
-                contribution = effect.get('mean', 0)
-                channel_roi[channel.replace('_spend', '').capitalize()] = contribution / spend if spend > 0 else 0
+            st.caption("📌 ROI = Channel Contribution / Channel Spend × 100,000 (scaled for visualization)")
+            st.caption("💡 Higher ROI = More efficient channel")
+        
+        with col2:
+            # --- Efficiency Score ---
+            st.subheader("📊 Efficiency Score")
             
-            roi_df = pd.DataFrame({
-                'Channel': list(channel_roi.keys()),
-                'ROI': list(channel_roi.values())
-            })
+            max_roi = roi_df['ROI (×100,000)'].max()
+            if max_roi > 0:
+                roi_df['Efficiency Score'] = (roi_df['ROI (×100,000)'] / max_roi * 100)
+            else:
+                roi_df['Efficiency Score'] = 0
             
             fig = px.bar(
                 roi_df,
                 x='Channel',
-                y='ROI',
-                title='ROI by Channel',
-                color='Channel'
+                y='Efficiency Score',
+                title='Channel Efficiency Score (%)',
+                color='Channel',
+                text_auto='.0f'
             )
-            fig.add_hline(y=1, line_dash="dash", line_color="red")
-            fig.update_layout(height=350)
+            fig.update_traces(
+                textposition='outside',
+                marker=dict(line=dict(width=2, color='DarkSlateGray'))
+            )
+            fig.update_layout(
+                yaxis_title="Efficiency Score (%)",
+                showlegend=False,
+                height=400,
+                yaxis=dict(range=[0, 110], gridcolor='lightgray')
+            )
             st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            st.subheader("📊 Budget Allocation")
             
-            fig = px.pie(
-                allocation_df,
-                values='Spend ($)',
-                names='Channel',
-                title='Current Budget Distribution'
-            )
-            fig.update_layout(height=350)
-            st.plotly_chart(fig, use_container_width=True)
+            # Best channel recommendation
+            best_channel = roi_df.loc[roi_df['ROI (×100,000)'].idxmax(), 'Channel']
+            st.success(f"🏆 Most Efficient Channel: **{best_channel}**")
         
-        # Summary metrics
+        # --- Efficiency Summary Cards ---
         st.subheader("📈 Efficiency Summary")
-        summary_metrics = {
-            'Total Budget': f"${result['total_budget']:,.0f}",
-            'Final Market Share': f"{result['final_market_share']:.1f}%",
-            'Share Gain': f"{result['share_gain']:.1f}%",
-            'Simulated ROI': f"{result['roi']:.4f}",
-            'Predicted Sales': f"{result['mmm_prediction']['mean']:.0f} (±{result['mmm_prediction']['std']:.0f})"
-        }
         
-        cols = st.columns(len(summary_metrics))
-        for i, (key, value) in enumerate(summary_metrics.items()):
-            with cols[i]:
-                st.metric(key, value)
+        total_roi = result.get('roi', 0)
+        share_gain = result.get('share_gain', 0)
+        total_budget_val = result.get('total_budget', 0)
+        
+        # ROI rating
+        if total_roi > 0.01:
+            rating = "🌟 Excellent"
+            rating_color = "green"
+        elif total_roi > 0.005:
+            rating = "✅ Good"
+            rating_color = "blue"
+        elif total_roi > 0:
+            rating = "⚠️ Moderate"
+            rating_color = "orange"
+        else:
+            rating = "❌ Poor"
+            rating_color = "red"
+        
+        cols = st.columns(4)
+        
+        with cols[0]:
+            st.metric(
+                "Total ROI",
+                f"{total_roi:.4f}",
+                delta=rating,
+                delta_color="normal"
+            )
+        
+        with cols[1]:
+            st.metric(
+                "Share Gain",
+                f"{share_gain:.1f}%",
+                delta="vs baseline"
+            )
+        
+        with cols[2]:
+            st.metric(
+                "Total Budget",
+                f"${total_budget_val:,.0f}",
+                delta=""
+            )
+        
+        with cols[3]:
+            st.metric(
+                "Final Market Share",
+                f"{result['final_market_share']:.1f}%",
+                delta=""
+            )
+        
+        # --- ROI Interpretation Guide ---
+        with st.expander("📖 How to Interpret ROI Analysis", expanded=False):
+            st.markdown("""
+            ### 📊 ROI Analysis Guide
+            
+            **What is ROI?**
+            - ROI = Channel Contribution / Channel Spend
+            - Higher ROI = Better efficiency
+            
+            **How to Read the Charts:**
+            1. **Channel ROI Chart**: Shows which channels generate the best return
+            2. **Efficiency Score**: Relative performance (100% = best channel)
+            3. **Total ROI**: Overall campaign effectiveness
+            
+            **Actionable Insights:**
+            - ✅ **High ROI (> average)**: Increase budget allocation
+            - ⚠️ **Medium ROI (≈ average)**: Maintain current budget
+            - ❌ **Low ROI (< average)**: Reduce budget or optimize strategy
+            
+            **Common Patterns:**
+            - **Digital > TV**: Performance marketing is more efficient than brand building
+            - **Social > Influencer**: Organic social outperforms paid influencer
+            - **All channels similar**: Market is saturated, focus on creative optimization
+            """)
     
     else:
         st.info("👈 Run a simulation to see marketing efficiency metrics")
