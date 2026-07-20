@@ -2,18 +2,28 @@
 
 ## Overview
 
-This project combines **Bayesian Media Mix Modeling (MMM)** with **Agent-Based Modeling (ABM)** to simulate how marketing spend influences consumer behavior and market outcomes.
+This project combines **Bayesian Media Mix Modeling (MMM)** with **Agent-Based Modeling (ABM)** to simulate how marketing spend influences consumer behavior and market outcomes. The integrated dashboard provides real-time visualization of consumer choices, social networks, and marketing efficiency metrics.
+
+## Key Features
+
+- **Agent-Based Model**: Simulates individual consumer decisions with social network effects
+- **Bayesian MMM**: Quantifies channel contributions and ROI using pymc-marketing
+- **Marketing Integration**: MMM effects feed into ABM consumer utilities
+- **Real-time Visualization**: Interactive 2D agent space with network display
+- **Scenario Analysis**: Compare different budget allocations
+- **Budget Optimization**: Find optimal marketing mix
 
 ## Installation
-Prerequisites
-Python 3.8 or higher
 
-pip package manager
+### Prerequisites
+- Python 3.8 or higher
+- pip package manager
 
 ### Step 1: Clone the Repository
-bash
+```bash
 git clone https://github.com/yourusername/mmm_simulator.git
 cd mmm_simulator
+
 ### Step 2: Install Dependencies
 bash
 pip install -r requirements.txt
@@ -21,30 +31,23 @@ pip install -r requirements.txt
 ### Step 3: Generate Sample Data
 bash
 python -m data.generate_data
+
 ### Step 4: Launch the Dashboard
 bash
 streamlit run streamlit_app/app.py
+
 Open your browser at http://localhost:8501
 
-## Usage Guide
+Usage Guide
 Dashboard Interface
-
 ### Left Panel: Controls
-Section	Parameters	Description
+The left panel organizes all simulation controls into four sections. Community Settings (Number of Consumers, Avg Connections, Initial Orange %) control the agent population and network structure. Product Settings (Quality Orange, Quality Blue) define product quality attributes. Agent Settings (Norm Influence, Info Exchange, Exploration) determine consumer behavior. Marketing Budget lets you set total budget and allocate across four channels: 📺 TV (brand building), 📱 Digital (performance marketing), 📢 Social (engagement), and 🌟 Influencer (niche audiences). The Controls section provides Setup ABM, Run Simulation, and Reset All buttons.
 
-Community Settings	Number of Consumers, Avg Connections, Initial Orange %	Agent population and network structure
+### Main Area: Four Tabs
+The main area features four analysis tabs. 🌍 Agent Space & Metrics displays a 2D network where Orange/Blue circles represent product choice, circle size indicates satisfaction, and grey lines show social connections. This tab also includes satisfaction distributions and KPI cards. 📈 Market Trends tracks market share, clustering, and consumer base over time. 🔬 Marketing Efficiency shows channel ROI, budget allocation, and efficiency metrics. 🎯 Scenario Analysis enables scenario comparison and budget optimization to find the optimal marketing mix.
 
-Budget Settings	Total Budget, Channel Allocation (%)	Marketing budget distribution
-
-Agent Settings	Norm Influence, Info Exchange, Exploration	Consumer behaviour parameters
-
-Controls	Setup, Start, Pause, Reset, Step	Simulation control buttons
-### Main Area
-Agent Space	Real-time visualisation of consumers (orange/blue circles) and social connections (grey lines)
-
-Market Shares Chart	Tracks orange product adoption over time
-
-Clustering Chart	Monitors social homophily dynamics
+### Getting Started
+Click Setup ABM to initialize the agent population. Adjust marketing budget and allocation, then click Run Simulation to observe how marketing influences consumer choices. Monitor Market Trends for adoption patterns, Marketing Efficiency for channel performance, and use Scenario Analysis to compare budget strategies and find the optimal allocation.
 
 ## Model Logic
 ### Media Mix Modelling (MMM)
@@ -57,7 +60,7 @@ Adstock: Marketing carryover effect (X_t = spend_t + α × X_{t-1})
 Saturation: Diminishing returns (effect = max_effect × (1 - exp(-X / half_saturation)))
 
 ### Agent-Based Model (ABM)
-Consumer decision process each step:
+#### Consumer decision process each step:
 
 Satisfaction Check: Probability to stick = satisfaction[current_product]
 
@@ -67,7 +70,7 @@ Utility Comparison: Choose product with higher utility
 
 Utility = (personal_experience + neighbor_info) / 2 + marketing_effect
 
-Marketing Integration
+#### Marketing Integration
 
 Marketing effects modify consumer utility:
 
